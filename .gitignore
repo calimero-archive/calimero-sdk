@@ -1,0 +1,15 @@
+#IDE
+.idea
+.vscode
+
+node_modules
+*.map
+
+coverage/
+lib/
+dist/
+
+# OS X
+.DS_Store
+
+.turbo
