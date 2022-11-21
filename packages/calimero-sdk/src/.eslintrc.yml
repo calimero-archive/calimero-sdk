@@ -1,0 +1,23 @@
+env:
+  es6: true
+  node: true
+extends:
+  - 'eslint:recommended'
+  - 'plugin:@typescript-eslint/eslint-recommended'
+  - 'plugin:@typescript-eslint/recommended'
+parser: '@typescript-eslint/parser'
+rules:
+  no-inner-declarations: off
+  indent:
+    - error
+    - 2
+    - SwitchCase: 1
+  '@typescript-eslint/no-explicit-any': error
+  # TODO: Clean-up code and enable following rules
+  '@typescript-eslint/naming-convention': error
+  '@typescript-eslint/explicit-function-return-type': error
+  '@typescript-eslint/no-use-before-define': error
+
+parserOptions:
+  ecmaVersion: 2018
+  sourceType: module
