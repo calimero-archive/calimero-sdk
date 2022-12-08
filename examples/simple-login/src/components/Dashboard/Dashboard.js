@@ -1,33 +1,11 @@
-import React, { useEffect } from "react";
-
+import React, { useEffect, useState } from "react";
+import { WalletConnection } from "calimero-sdk";
 import calimeroSdk, { config } from "../../calimeroSdk";
 import * as nearAPI from "near-api-js";
 import big from "bn.js";
-import { WalletConnection } from "calimero-sdk";
-import { Buffer } from "buffer";
-
-const getAccountBalance = async () => {
-  const connection = await calimeroSdk.getCalimeroConnection();
-  const account = await connection.account(localStorage.getItem("accountId"));
-  const balance = await account.getAccountBalance();
-  console.log(balance);
-}
-
-const walletSignIn = async () => {
-  window.Buffer = window.Buffer || Buffer; 
-  const keyStore = new nearAPI.keyStores.BrowserLocalStorageKeyStore();
-  console.log(keyStore);
-  const connection = await nearAPI.connect({
-    networkId: config.shardId,
-    keyStore,
-    signer: new nearAPI.InMemorySigner(keyStore),
-    nodeUrl: `${config.calimeroUrl}/api/v1/shards/${config.shardId}/neard-rpc`,
-    walletUrl: config.walletUrl,
-  });
-  const walletConnection = new WalletConnection(connection, config);
-  console.log(walletConnection);
-  walletConnection.requestSignIn({ contractId: "atoken.demosha.calimero.testnet", methodNames: ["ft_transfer"]});
-}
+// import { walletConnection } from "../../walletConnection";
+// import { Buffer } from "buffer";
+import walletConnection from "../../walletConnection";
 
 
 const contractCall = async () => {
@@ -65,21 +43,39 @@ const contractCall = async () => {
   // }
 }
 
-const PrivateComponent= () => <div>
-  <button onClick={() => calimeroSdk.signTransaction("EAAAAGRhbGVwYXBpLnRlc3RuZXQAccIgton1dWYvHQfQnz1zBhZNus1OD84pxv%2Ftd4mpD17BM6EQAAAAABAAAABkYWxlcGFwaS50ZXN0bmV019g2Y1DPtOjGuld6oQ9tkKaS1X49bt%2BdSAs%2BTJ8bSiMBAAAAAwAAAKHtzM4bwtMAAAAAAAA%3D","https://localhost:3001")}>Send Transaction</button>
-  <button onClick={() => getAccountBalance()}>Get Balance</button>
-  <button onClick={() => walletSignIn()}>Change method</button>
-  <button onClick={calimeroSdk.signOut}>Logout</button>
-</div>;
-
-const PublicComponent = () => <div>
-  <button onClick={calimeroSdk.signIn}>Login with NEAR</button>
-</div>;
-
 export default function Dashboard() {
-  useEffect(()=>{
-    calimeroSdk.setCredentials();
-  },[])
+  const [isSignedIn, setIsSignedIn] = useState(false);
 
-  return calimeroSdk.isSignedIn() ? <PrivateComponent /> : <PublicComponent />;
+  const getAccountBalance = async () => {
+    const walletCon = await walletConnection();
+    const connection = await walletCon.requestCalimeroConnection();
+    const account = await connection.account(localStorage.getItem("accountId"));
+    const balance = await account.getAccountBalance();
+    console.log(balance);
+  }
+
+  const walletSignIn = async () => {
+      const connection = await walletConnection();
+      connection.requestSignIn({});
+  }
+
+  const PrivateComponent= () => <div>
+    <button onClick={() => calimeroSdk.signTransaction("EAAAAGRhbGVwYXBpLnRlc3RuZXQAccIgton1dWYvHQfQnz1zBhZNus1OD84pxv%2Ftd4mpD17BM6EQAAAAABAAAABkYWxlcGFwaS50ZXN0bmV019g2Y1DPtOjGuld6oQ9tkKaS1X49bt%2BdSAs%2BTJ8bSiMBAAAAAwAAAKHtzM4bwtMAAAAAAAA%3D","https://localhost:3001")}>Send Transaction</button>
+    <button onClick={() => getAccountBalance()}>Get Balance</button>
+    <button onClick={calimeroSdk.signOut}>Logout</button>
+  </div>;
+
+  const PublicComponent = () => <div>
+    <button onClick={() => walletSignIn()}>Login with NEAR</button>
+  </div>;
+
+  useEffect(()=>{
+    const initialiseWalletConnection = async ()=> {
+      const walletConnectiontemp = await walletConnection();
+      setIsSignedIn(walletConnectiontemp.isSignedIn());
+    }
+    initialiseWalletConnection();
+  },[isSignedIn]);
+
+  return isSignedIn ? <PrivateComponent /> : <PublicComponent />;
 };

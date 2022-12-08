@@ -1,0 +1,1 @@
+cd examples/simple-login && pnpm run start
