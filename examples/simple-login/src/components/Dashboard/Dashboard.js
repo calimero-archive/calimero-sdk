@@ -3,9 +3,9 @@ import { WalletConnection } from "calimero-sdk";
 import calimeroSdk, { config } from "../../calimeroSdk";
 import * as nearAPI from "near-api-js";
 import big from "bn.js";
-// import { walletConnection } from "../../walletConnection";
-// import { Buffer } from "buffer";
+import { Buffer } from "buffer";
 import walletConnection from "../../walletConnection";
+import { AccessKeyView } from 'near-api-js/lib/providers/provider';
 
 
 const contractCall = async () => {
@@ -47,8 +47,7 @@ export default function Dashboard() {
   const [isSignedIn, setIsSignedIn] = useState(false);
 
   const getAccountBalance = async () => {
-    const walletCon = await walletConnection();
-    const connection = await walletCon.requestCalimeroConnection();
+    const connection = await calimeroSdk.getCalimeroConnection();
     const account = await connection.account(localStorage.getItem("accountId"));
     const balance = await account.getAccountBalance();
     console.log(balance);
@@ -58,11 +57,27 @@ export default function Dashboard() {
       const connection = await walletConnection();
       connection.requestSignIn({});
   }
+  const walletSignOut = async () => {
+    const connection = await walletConnection();
+    connection.signOut();
+  }
+  const addFunctionkey = async () => {
+    window.Buffer = window.Buffer || Buffer;
+    const connection = await walletConnection();
+    await connection.addFunctionKey(
+      "tictactoe.calisdk.calimero.testnet",
+      ["make_a_move","start_game"],
+      nearAPI.utils.format.parseNearAmount("1"),
+      localStorage.getItem("calimeroToken")
+    )
+  }
 
   const PrivateComponent= () => <div>
-    <button onClick={() => calimeroSdk.signTransaction("EAAAAGRhbGVwYXBpLnRlc3RuZXQAccIgton1dWYvHQfQnz1zBhZNus1OD84pxv%2Ftd4mpD17BM6EQAAAAABAAAABkYWxlcGFwaS50ZXN0bmV019g2Y1DPtOjGuld6oQ9tkKaS1X49bt%2BdSAs%2BTJ8bSiMBAAAAAwAAAKHtzM4bwtMAAAAAAAA%3D","https://localhost:3001")}>Send Transaction</button>
     <button onClick={() => getAccountBalance()}>Get Balance</button>
-    <button onClick={calimeroSdk.signOut}>Logout</button>
+    <button onClick={() => addFunctionkey()}>Add Function Key</button>
+    <button onClick={() => console.log("todo - call contract")}>Contract Call</button>
+    <button onClick={() => walletSignOut()}>Logout</button>
+    
   </div>;
 
   const PublicComponent = () => <div>
