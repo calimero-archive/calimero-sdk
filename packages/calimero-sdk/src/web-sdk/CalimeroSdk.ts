@@ -106,7 +106,6 @@ interface RequestSignTransactionsOptions {
 export class WalletConnection extends nearAPI.WalletConnection {
   _calimeroConfig: CalimeroConfig;
   connection: nearAPI.WalletConnection;
-
   constructor(near: Near, config: CalimeroConfig, appPrefix: string | null) {
     super(near, appPrefix);
     this._calimeroConfig = config;
@@ -154,6 +153,9 @@ export class WalletConnection extends nearAPI.WalletConnection {
     const accountId = localStorage.getItem(ACCOUNT_ID);
 
     if(!!accountId && !!publicKey){
+      if(allKeys[0] === ''){
+        allKeys.length = 0;
+      }
       allKeys.push(publicKey);
       this._authData = {
         accountId,
@@ -183,7 +185,7 @@ export class WalletConnection extends nearAPI.WalletConnection {
       .join(','));
     newUrl.searchParams.set('callbackUrl', callbackUrl || currentUrl.href);
     if (encodedMeta){
-      newUrl.hash = 'meta='+encodedMeta;
+      newUrl.searchParams.set('meta', encodedMeta);
     }
     window.location.assign(newUrl.toString());
   }
@@ -227,11 +229,8 @@ export class WalletConnection extends nearAPI.WalletConnection {
     const blockHash = nearAPI.utils.serialize.base_decode(accessKey.block_hash);
     const nonce = accessKey.nonce+1;
     const newKeyPair = KeyPair.fromRandom('ed25519');
-    const keystore = new nearAPI.keyStores.BrowserLocalStorageKeyStore(
-      localStorage,
-      'functionKey:'
-    );
-    keystore.setKey('calisdk-calimero-testnet',
+    const keystore = new nearAPI.keyStores.BrowserLocalStorageKeyStore();
+    keystore.setKey(this._calimeroConfig.shardId,
       sender || '',
       newKeyPair);
     const actions = [

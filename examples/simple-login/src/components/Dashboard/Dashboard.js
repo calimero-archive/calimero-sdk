@@ -1,47 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { WalletConnection } from "calimero-sdk";
-import calimeroSdk, { config } from "../../calimeroSdk";
+import calimeroSdk from "../../calimeroSdk";
 import * as nearAPI from "near-api-js";
-import big from "bn.js";
 import { Buffer } from "buffer";
 import walletConnection from "../../walletConnection";
-import { AccessKeyView } from 'near-api-js/lib/providers/provider';
-
-
-const contractCall = async () => {
-  // const accountId = localStorage.getItem("accountId");
-  // const publicKey = localStorage.getItem("publicKey");
-  // const calimeroConnection = await calimeroSdk.getCalimeroConnection();
-  // const walletConnection = new nearAPI.WalletConnection(calimeroConnection);
-  // walletConnection._authData = 
-  // { accountId, allKeys: [publicKey] };
-  // let contract = new nearAPI.Contract(walletConnection.account(), "tictactoe.brt2.calimero.testnet", {
-  //   viewMethods: [],
-  //   changeMethods: ["make_a_move"],
-  // });
-  // console.log(calimeroConnection.config);
-  // const metaJson = {
-  //   calimeroRPCEndpoint: calimeroConnection.config.nodeUrl,
-  //   calimeroShardId: calimeroConnection.config.networkId,
-  //   calimeroAuthToken: localStorage.getItem("calimeroToken"),
-  // };
-  // const meta = JSON.stringify(metaJson);
-  // try {
-  //   await contract.make_a_move(
-  //     {
-  //       meta, // meta information NEAR Wallet will send back to the application. `meta` will be attached to the `callbackUrl` as a url search param
-  //       args: {
-  //         game_id: 1,
-  //         selected_field: 1,        
-  //     },
-  //     gas:  300000000000000, // attached GAS (optional)
-  //     amount: new big.BN("0")
-  //   }
-  //   );
-  // } catch (error) {
-  //   console.error(error);
-  // }
-}
 
 export default function Dashboard() {
   const [isSignedIn, setIsSignedIn] = useState(false);
@@ -65,17 +26,60 @@ export default function Dashboard() {
     window.Buffer = window.Buffer || Buffer;
     const connection = await walletConnection();
     await connection.addFunctionKey(
-      "tictactoe.calisdk.calimero.testnet",
+      "tictactoe.fran.calimero.testnet",
       ["make_a_move","start_game"],
       nearAPI.utils.format.parseNearAmount("1"),
       localStorage.getItem("calimeroToken")
     )
   }
+  const contractCall = async () => {
+    window.Buffer = window.Buffer || Buffer;
+
+    const accountId = localStorage.getItem("accountId");
+    const publicKey = localStorage.getItem("publicKey");
+
+
+    const calimeroConnection = await calimeroSdk.getCalimeroConnection();
+    const walletConnection = new nearAPI.WalletConnection(calimeroConnection);
+    walletConnection._authData = { accountId, allKeys: [publicKey] };
+
+    const account = await walletConnection.account(accountId);
+
+   const contractArgs = {
+            player_a: accountId,
+            player_b: "zone.testnet"   
+    };
+
+    const metaJson = {
+      calimeroRPCEndpoint: calimeroConnection.config.nodeUrl,
+      calimeroShardId: calimeroConnection.config.networkId,
+      calimeroAuthToken: localStorage.getItem("calimeroToken"),
+    };
+    const meta = JSON.stringify(metaJson);
+
+    try{
+      const result = await account.signAndSendTransaction({
+            receiverId: "tictactoe.fran.calimero.testnet",
+            actions: [
+              nearAPI.transactions.functionCall(
+                "start_game",
+                Buffer.from(JSON.stringify(contractArgs)),
+                10000000000000,
+                "0"
+              )
+            ],
+          walletMeta: meta
+      });
+      console.log(result);
+    }catch(error){
+      console.log(error);
+    }
+  }
 
   const PrivateComponent= () => <div>
     <button onClick={() => getAccountBalance()}>Get Balance</button>
     <button onClick={() => addFunctionkey()}>Add Function Key</button>
-    <button onClick={() => console.log("todo - call contract")}>Contract Call</button>
+    <button onClick={() => contractCall()}>Contract Call</button>
     <button onClick={() => walletSignOut()}>Logout</button>
     
   </div>;
