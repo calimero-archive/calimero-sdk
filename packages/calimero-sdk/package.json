@@ -11,6 +11,8 @@
   "types": "lib/index.d.ts",
   "dependencies": {
     "axios": "^0.27.2",
+    "buffer": "^6.0.3",
+    "js-sha256": "^0.9.0",
     "near-api-js": "^1.1.0",
     "uuid": "^9.0.0"
   },
@@ -43,7 +45,7 @@
     "lint:test:fix": "eslint --ext .js --fix test",
     "prefuzz": "pnpm build",
     "fuzz": "jsfuzz test/fuzz/borsh-roundtrip.js test/fuzz/corpus/",
-    "clean": "pnpm rimraf lib",
+    "clean": "pnpm rimraf lib node_modules",
     "prepare": "pnpm build",
     "bundlewatch": "bundlewatch"
   },

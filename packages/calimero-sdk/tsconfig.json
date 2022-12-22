@@ -17,7 +17,8 @@
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "experimentalDecorators": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "skipLibCheck": true
   },
   "files": ["src/index.ts"]
 }
