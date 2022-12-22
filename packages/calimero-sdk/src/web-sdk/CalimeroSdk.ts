@@ -4,6 +4,7 @@ import * as nearAPI from 'near-api-js';
 import { InMemorySigner, KeyPair, Near } from 'near-api-js';
 import { v4 as uuidv4 } from 'uuid';
 import { AccessKeyView } from 'near-api-js/lib/providers/provider';
+import { Buffer } from 'buffer';
 
 const AUTH_TOKEN_KEY = 'calimeroToken';
 const MESSAGE_KEY = 'calimeroMessage';
@@ -13,6 +14,8 @@ const PUBLIC_KEY = 'publicKey';
 const ALL_KEYS = 'all_keys';
 const WALLET_DATA = 'calimero_wallet_auth_key';
 const WALLET_AUTH = 'undefined_wallet_auth_key';
+
+window.Buffer = window.Buffer || Buffer;
 
 interface CalimeroConfig {
   shardId: string;
@@ -117,7 +120,7 @@ interface RequestSignTransactionsOptions {
 export class WalletConnection extends nearAPI.WalletConnection {
   _calimeroConfig: CalimeroConfig;
 
-  constructor(calimero : Calimero, appPrefix: string | null) {
+  constructor(calimero: Calimero, appPrefix: string | null) {
     super(calimero.connection, appPrefix);
     this._calimeroConfig = calimero.config;
   }
@@ -220,7 +223,7 @@ export class WalletConnection extends nearAPI.WalletConnection {
 
     const calimeroProvider = calimeroConnection.connection.provider;
     let accessKey;
-    
+
     try{
       accessKey = await calimeroProvider.query<AccessKeyView>({
         ['request_type']: 'view_access_key',
