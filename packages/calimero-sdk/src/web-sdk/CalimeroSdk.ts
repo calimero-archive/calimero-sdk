@@ -1,10 +1,12 @@
 import BN from 'bn.js';
 import { sha256 } from 'js-sha256';
 import * as nearAPI from 'near-api-js';
+
 import { InMemorySigner, KeyPair, Near } from 'near-api-js';
 import { v4 as uuidv4 } from 'uuid';
 import { AccessKeyView } from 'near-api-js/lib/providers/provider';
 import { Buffer } from 'buffer';
+
 
 const AUTH_TOKEN_KEY = 'calimeroToken';
 const MESSAGE_KEY = 'calimeroMessage';
@@ -262,6 +264,7 @@ export class WalletConnection extends nearAPI.WalletConnection {
       actions,
       blockHash
     );
+    
     const batchTransactionArray : nearAPI.transactions.Transaction[] = [];
     batchTransactionArray.push(transaction);
     
@@ -270,5 +273,4 @@ export class WalletConnection extends nearAPI.WalletConnection {
       callbackUrl: window.location.href
     });
   };
-
 }
