@@ -12,12 +12,18 @@ const ACCOUNT_ID = 'accountId';
 const PUBLIC_KEY = 'publicKey';
 const ALL_KEYS = 'all_keys';
 const WALLET_DATA = 'calimero_wallet_auth_key';
+const WALLET_AUTH = 'undefined_wallet_auth_key';
 
 interface CalimeroConfig {
   shardId: string;
   calimeroUrl: string;
   walletUrl: string;
   calimeroWebSdkService: string;
+}
+
+interface Calimero {
+   connection: Near;
+   config: CalimeroConfig;
 }
 
 export class CalimeroSdk {
@@ -31,13 +37,13 @@ export class CalimeroSdk {
     return new CalimeroSdk(config);
   }
 
-  getCalimeroConnection = async (): Promise<nearAPI.Near> => {
+  connect = async (): Promise<Calimero> => {
     const xApiKey = localStorage.getItem(AUTH_TOKEN_KEY) || '';
-    if(!xApiKey) {
-      console.log('Log in first');
+    if(!xApiKey){
+      console.log('Requires login first!');
     }
     const keyStore = new nearAPI.keyStores.BrowserLocalStorageKeyStore();
-    return await nearAPI.connect({
+    const connection = await nearAPI.connect({
       networkId: this._config.shardId,
       keyStore: keyStore,
       signer: new InMemorySigner(keyStore),
@@ -47,6 +53,10 @@ export class CalimeroSdk {
         ['x-api-key']: xApiKey,
       },
     });
+    return {
+      connection : connection,
+      config: this._config
+    };
   };
 }
 
@@ -57,6 +67,7 @@ const clearLocalStorage = (): void => {
   localStorage.removeItem(ACCOUNT_ID);
   localStorage.removeItem(PUBLIC_KEY);
   localStorage.removeItem(WALLET_DATA);
+  localStorage.removeItem(WALLET_AUTH);
 };
 
 const setCredentials = (): void => {
@@ -105,14 +116,10 @@ interface RequestSignTransactionsOptions {
 
 export class WalletConnection extends nearAPI.WalletConnection {
   _calimeroConfig: CalimeroConfig;
-  connection: nearAPI.WalletConnection;
-  constructor(near: Near, config: CalimeroConfig, appPrefix: string | null) {
-    super(near, appPrefix);
-    this._calimeroConfig = config;
-  }
 
-  static init(near: Near, config: CalimeroConfig, appPrefix = 'calimero'): WalletConnection {
-    return new WalletConnection(near, config, appPrefix);
+  constructor(calimero : Calimero, appPrefix: string | null) {
+    super(calimero.connection, appPrefix);
+    this._calimeroConfig = calimero.config;
   }
 
   generateMessage(): { ogm: string, message: string } {
@@ -200,7 +207,6 @@ export class WalletConnection extends nearAPI.WalletConnection {
       console.error(error);
     }
     const keyStore = new nearAPI.keyStores.BrowserLocalStorageKeyStore();
-
     const calimeroConnection = await nearAPI.connect({
       networkId: this._calimeroConfig.shardId,
       keyStore: keyStore,
@@ -211,8 +217,10 @@ export class WalletConnection extends nearAPI.WalletConnection {
         ['x-api-key']: xApiKey,
       },
     });
+
     const calimeroProvider = calimeroConnection.connection.provider;
     let accessKey;
+    
     try{
       accessKey = await calimeroProvider.query<AccessKeyView>({
         ['request_type']: 'view_access_key',
