@@ -17,7 +17,6 @@ const ALL_KEYS = 'all_keys';
 const WALLET_DATA = 'calimero_wallet_auth_key';
 const WALLET_AUTH = 'undefined_wallet_auth_key';
 
-window.Buffer = window.Buffer || Buffer;
 
 interface CalimeroConfig {
   shardId: string;
@@ -43,6 +42,7 @@ export class CalimeroSdk {
   }
 
   connect = async (): Promise<Calimero> => {
+    window.Buffer = Buffer;
     const xApiKey = localStorage.getItem(AUTH_TOKEN_KEY) || '';
     if(!xApiKey){
       console.log('Requires login first!');
@@ -203,6 +203,7 @@ export class WalletConnection extends nearAPI.WalletConnection {
   }
 
   addFunctionKey = async(contractAddress: string, methodNames: string[], allowance: BN, xApiKey: string): Promise<void> => {
+    window.Buffer = Buffer;
     let sender;
     let publicKey;
     try{
