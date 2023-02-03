@@ -153,7 +153,7 @@ export class ConnectorPermissions {
     return result;
   }
 
-  async denyCrossShardCallPerContract(
+  async addDenyXscRulePair(
     accountRegex: string,
     contractRegex: string,
     attachedDeposit: string
@@ -170,7 +170,7 @@ export class ConnectorPermissions {
     return result;
   }
 
-  async removeDeniedCrossShardCallPerContract(accountRegex: string, contractRegex: string): Promise<boolean> {
+  async removeDeniedXscRulePair(accountRegex: string, contractRegex: string): Promise<boolean> {
     // @ts-ignore
     const result = await this.permissionsContract.remove_denied_cross_shard_call_per_contract({
       ['account_regex']: accountRegex,
@@ -192,7 +192,7 @@ export class ConnectorPermissions {
     return JSON.parse(Buffer.from(queryResponse.result).toString());
   }
 
-  async getAccountPerContractDeniesForXsc(): Promise<{accountRule: string, contractRule: string}[]> {
+  async getXscDenyRulePairs(): Promise<{accountRule: string, contractRule: string}[]> {
     const args = '{}';
     const queryResponse = await callViewMethod(
       this.connectionInfo,
