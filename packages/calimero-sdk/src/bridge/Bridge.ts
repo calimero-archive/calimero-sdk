@@ -218,7 +218,7 @@ export class Bridge {
     return await permissionsContract.canMakeCrossShardCallForContract(accountId, contractId);
   }
 
-  async getAccountPerContractDeniesForXsc(chain: ChainType): Promise<[string, string][]> {
+  async getAccountPerContractDeniesForXsc(chain: ChainType): Promise<{accountRule: string, contractRule: string}[]> {
     const permissionsContract = await ConnectorPermissions.initForViewMethods(
       chain,
       this.shardName,

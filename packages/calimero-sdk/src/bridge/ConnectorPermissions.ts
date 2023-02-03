@@ -192,7 +192,7 @@ export class ConnectorPermissions {
     return JSON.parse(Buffer.from(queryResponse.result).toString());
   }
 
-  async getAccountPerContractDeniesForXsc(): Promise<[string, string][]> {
+  async getAccountPerContractDeniesForXsc(): Promise<{accountRule: string, contractRule: string}[]> {
     const args = '{}';
     const queryResponse = await callViewMethod(
       this.connectionInfo,
@@ -201,6 +201,11 @@ export class ConnectorPermissions {
       args
     );
 
-    return JSON.parse(Buffer.from(queryResponse.result).toString());
+    const rulePairs: {accountRule: string, contractRule: string}[] = [];
+    JSON.parse(Buffer.from(queryResponse.result).toString()).forEach(function(currRule) {
+      rulePairs.push({accountRule: currRule[1], contractRule: currRule[0]});
+    });
+
+    return rulePairs;
   }
 }
