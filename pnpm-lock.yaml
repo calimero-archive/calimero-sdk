@@ -37,7 +37,7 @@ importers:
       '@testing-library/user-event': ^13.5.0
       bn.js: ^5.2.1
       buffer: ^6.0.3
-      calimero-sdk: workspace:^0.0.3
+      calimero-sdk: workspace:^0.0.8
       near-api-js: ^1.1.0
       react: ^18.2.0
       react-dom: ^18.2.0

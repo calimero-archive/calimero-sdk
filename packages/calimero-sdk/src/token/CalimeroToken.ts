@@ -1,4 +1,3 @@
-import { sha256 } from 'js-sha256';
 import { PublicKey } from 'near-api-js/lib/utils';
 
 export const MAX_CALIMERO_TOKEN_DURATION = 1000 * 60 * 60 * 24 * 30;
@@ -41,16 +40,17 @@ export class WalletData {
   }
 
   isSignatureValid(): boolean {
+    const publicKey = PublicKey.fromString(this.publicKey);
     const data = {
       accountId: this.accountId,
       message: this.message,
       blockId: this.blockId,
-      publicKey: this.publicKey,
+      publicKey: Buffer.from(publicKey.data).toString('base64'),
+      keyType: publicKey.keyType
     };
-
-    const encodedSignedData = JSON.stringify(data);
+    const encodedSignedData = Buffer.from(JSON.stringify(data));
     return PublicKey.fromString(this.publicKey).verify(
-      new Uint8Array(sha256.array(encodedSignedData)),
+      encodedSignedData,
       this.signature,
     );
   }

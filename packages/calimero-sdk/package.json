@@ -1,6 +1,6 @@
 {
   "name": "calimero-sdk",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Javascript library to interact with Calimero private shards",
   "repository": {
     "type": "git",
