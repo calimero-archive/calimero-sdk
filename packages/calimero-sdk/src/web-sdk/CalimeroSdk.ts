@@ -1,28 +1,27 @@
-import BN from 'bn.js';
-import { sha256 } from 'js-sha256';
 import * as nearAPI from 'near-api-js';
 
 import { InMemorySigner, KeyPair, Near } from 'near-api-js';
-import { v4 as uuidv4 } from 'uuid';
-import { AccessKeyView } from 'near-api-js/lib/providers/provider';
 import { Buffer } from 'buffer';
+import { serialize } from 'borsh';
+import { SCHEMA } from 'near-api-js/lib/transaction';
 
 
-const AUTH_TOKEN_KEY = 'calimeroToken';
-const MESSAGE_KEY = 'calimeroMessage';
-const MESSAGE_HASH_KEY = 'calimeroSecretHash';
-const ACCOUNT_ID = 'accountId';
-const PUBLIC_KEY = 'publicKey';
-const ALL_KEYS = 'all_keys';
-const WALLET_DATA = 'calimero_wallet_auth_key';
-const WALLET_AUTH = 'undefined_wallet_auth_key';
-
-
+const SHARD_LOGIN_WALLET_URL_SUFFIX = '/login/';
+const PENDING_ACCESS_KEY_PREFIX = 'pending_key';
 interface CalimeroConfig {
   shardId: string;
   calimeroUrl: string;
   walletUrl: string;
   calimeroWebSdkService: string;
+  calimeroToken: string;
+}
+
+interface SignInOptions {
+  contractId?: string;
+  methodNames?: string[];
+  // TODO: Replace following with single callbackUrl
+  successUrl?: string;
+  failureUrl?: string;
 }
 
 interface Calimero {
@@ -41,12 +40,8 @@ export class CalimeroSdk {
     return new CalimeroSdk(config);
   }
 
-  connect = async (): Promise<Calimero> => {
+  async connect(): Promise<Calimero> {
     window.Buffer = Buffer;
-    const xApiKey = localStorage.getItem(AUTH_TOKEN_KEY) || '';
-    if(!xApiKey){
-      console.log('Requires login first!');
-    }
     const keyStore = new nearAPI.keyStores.BrowserLocalStorageKeyStore();
     const connection = await nearAPI.connect({
       networkId: this._config.shardId,
@@ -55,223 +50,85 @@ export class CalimeroSdk {
       nodeUrl: `${this._config.calimeroUrl}/api/v1/shards/${this._config.shardId}/neard-rpc`,
       walletUrl: this._config.walletUrl,
       headers: {
-        ['x-api-key']: xApiKey,
+        ['x-api-key']: this._config.calimeroToken,
       },
     });
     return {
-      connection : connection,
+      connection,
       config: this._config
     };
-  };
-}
-
-const clearLocalStorage = (): void => {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-  localStorage.removeItem(MESSAGE_KEY);
-  localStorage.removeItem(MESSAGE_HASH_KEY);
-  localStorage.removeItem(ACCOUNT_ID);
-  localStorage.removeItem(PUBLIC_KEY);
-  localStorage.removeItem(WALLET_DATA);
-  localStorage.removeItem(WALLET_AUTH);
-};
-
-const setCredentials = (): void => {
-  if (window.location.hash) {
-    try {
-      const decodedData = JSON.parse(
-        decodeURIComponent(window.location.hash.substring(1))
-      );
-      const walletData = JSON.parse(decodedData.calimeroToken).walletData;
-      const message = walletData.message;
-      const accountId = walletData.accountId;
-      const publicKey = walletData.publicKey;
-      const authToken = decodedData.secretToken;
-      const sentHash = localStorage.getItem(MESSAGE_HASH_KEY);
-      if (message !== sentHash) {
-        throw new Error(
-          'Sent Message hash is not equal to receiver, please try again!'
-        );
-      }
-      localStorage.setItem(AUTH_TOKEN_KEY,
-        authToken);
-      localStorage.setItem(MESSAGE_KEY,
-        message);
-      localStorage.setItem(ACCOUNT_ID,
-        accountId);
-      localStorage.setItem(PUBLIC_KEY,
-        publicKey);
-    } catch (error) {
-      if (typeof error === 'string') {
-        console.error(error.toUpperCase());
-      } else if (error instanceof Error) {
-        console.error(error.message);
-      }
-    }
   }
-};
-
-interface SignInOptions {
-  successUrl?: string;
 }
 
-interface RequestSignTransactionsOptions {
-  transactions: nearAPI.transactions.Transaction[];
-  callbackUrl?: string;
-}
+type RequestSignTransactionsOptions = { transactions, meta, callbackUrl };
 
 export class WalletConnection extends nearAPI.WalletConnection {
   _calimeroConfig: CalimeroConfig;
+  _connection: Near;
 
   constructor(calimero: Calimero, appPrefix: string | null) {
     super(calimero.connection, appPrefix);
+    this._connection = calimero.connection;
     this._calimeroConfig = calimero.config;
   }
 
-  generateMessage(): { ogm: string, message: string } {
-    const ogm = uuidv4().toString();
-    const message = sha256.update(ogm).toString();
-    localStorage.setItem(MESSAGE_HASH_KEY,
-      message);
-    return {ogm, message};
-  }
-  signOut = (callbackUrl = '/'): void => {
-    clearLocalStorage();
-    window.location.href = callbackUrl;
-  };
-
-  async requestSignIn({ successUrl }: SignInOptions): Promise<void> {
-    const currentUrl = new URL(window.location.href);
-    const calimeroLoginUrl = new URL(this._calimeroConfig.calimeroWebSdkService + '/accounts/sync/');
-
-    calimeroLoginUrl.searchParams.set('shard', this._calimeroConfig.shardId);
-    calimeroLoginUrl.searchParams.set('next', successUrl || currentUrl.href);
-   
-    const { ogm, message } = this.generateMessage();
-    const walletVerificationUrl = new URL(`${this._calimeroConfig.walletUrl}/verify-owner/`);
-
-    calimeroLoginUrl.searchParams.set('ogm', ogm);
-    walletVerificationUrl.searchParams.set('callbackUrl', calimeroLoginUrl.toString());
-    walletVerificationUrl.searchParams.set('message', message);
-
-    window.location.assign(walletVerificationUrl.toString());
-  }
-
-  async _completeSignInWithAccessKey(): Promise<void> {
-    setCredentials();
-
-    const currentUrl = new URL(window.location.href);
-    const publicKey = localStorage.getItem(PUBLIC_KEY) || '';
-    const allKeys = (localStorage.getItem(ALL_KEYS) || '').split(',');
-    const accountId = localStorage.getItem(ACCOUNT_ID);
-
-    if(!!accountId && !!publicKey){
-      if(allKeys[0] === ''){
-        allKeys.length = 0;
-      }
-      allKeys.push(publicKey);
-      this._authData = {
-        accountId,
-        allKeys
-      };
-
-      localStorage.setItem(this._authDataKey, JSON.stringify(this._authData));
-      window.location.assign(currentUrl.origin+currentUrl.pathname);
+  async requestSignIn({ contractId, methodNames, successUrl, failureUrl }: SignInOptions): Promise<void> {
+    if(!this._calimeroConfig.calimeroToken || !this._calimeroConfig.shardId){
+      throw new Error('Calimero token or shard id is not set!');
     }
-  }
-
-  async requestSignTransactions({ transactions, callbackUrl }: RequestSignTransactionsOptions): Promise<void> {
-
-    const metaJson = {
-      calimeroRPCEndpoint: `${this._calimeroConfig.calimeroUrl}/api/v1/shards/${this._calimeroConfig.shardId}/neard-rpc`,
-      calimeroShardId: this._calimeroConfig.shardId,
-      calimeroAuthToken: localStorage.getItem(AUTH_TOKEN_KEY),
-    };
-    const encodedMeta = encodeURIComponent(JSON.stringify(metaJson));
-  
     const currentUrl = new URL(window.location.href);
-    const newUrl = new URL('sign', this._walletBaseUrl);
+    const newUrl = new URL(this._calimeroConfig.walletUrl + SHARD_LOGIN_WALLET_URL_SUFFIX);
+    newUrl.searchParams.set('success_url', successUrl || currentUrl.href);
+    newUrl.searchParams.set('failure_url', failureUrl || currentUrl.href);
+    const hashParams = new URLSearchParams();
+    hashParams.set('calimeroRPCEndpoint', `${this._calimeroConfig.calimeroUrl}/api/v1/shards/${this._calimeroConfig.shardId}/neard-rpc`);
+    hashParams.set('calimeroAuthToken', this._calimeroConfig.calimeroToken);
+    hashParams.set('calimeroShardId', this._calimeroConfig.shardId);
+    newUrl.hash = hashParams.toString();
+    if (contractId) {
+      /* Throws exception if contract account does not exist */
+      console.log(super._near);
+      const contractAccount = await this._connection.account(contractId);
+      console.log(contractAccount);
+      await contractAccount.state();
 
-    newUrl.searchParams.set('transactions', transactions
-      .map(transaction => nearAPI.utils.serialize.serialize(nearAPI.transactions.SCHEMA, transaction))
-      .map(serialized => Buffer.from(serialized).toString('base64'))
-      .join(','));
-    newUrl.searchParams.set('callbackUrl', callbackUrl || currentUrl.href);
-    if (encodedMeta){
-      newUrl.searchParams.set('meta', encodedMeta);
+      newUrl.searchParams.set('contract_id', contractId);
+      const accessKey = KeyPair.fromRandom('ed25519');
+      newUrl.searchParams.set('public_key', accessKey.getPublicKey().toString());
+      console.log('config', this._connection.config);
+      await this._connection.config.keyStore.setKey('needasmoke-calimero-testnet', PENDING_ACCESS_KEY_PREFIX + accessKey.getPublicKey(), accessKey);
     }
+
+    if (methodNames) {
+      methodNames.forEach(methodName => {
+        newUrl.searchParams.append('methodNames', methodName);
+      });
+    }
+
     window.location.assign(newUrl.toString());
   }
 
-  addFunctionKey = async(contractAddress: string, methodNames: string[], allowance: BN, xApiKey: string): Promise<void> => {
-    window.Buffer = Buffer;
-    let sender;
-    let publicKey;
-    try{
-      sender = localStorage.getItem(ACCOUNT_ID);
-      publicKey = localStorage.getItem(PUBLIC_KEY);
-    }catch(error){
-      console.error(error);
-    }
-    const keyStore = new nearAPI.keyStores.BrowserLocalStorageKeyStore();
-    const calimeroConnection = await nearAPI.connect({
-      networkId: this._calimeroConfig.shardId,
-      keyStore: keyStore,
-      signer: new InMemorySigner(keyStore),
-      nodeUrl: `${this._calimeroConfig.calimeroUrl}/api/v1/shards/${this._calimeroConfig.shardId}/neard-rpc`,
-      walletUrl: this._calimeroConfig.walletUrl,
-      headers: {
-        ['x-api-key']: xApiKey,
-      },
-    });
+  async requestSignTransactions({ transactions, meta, callbackUrl }: RequestSignTransactionsOptions): Promise<void> {
+    console.log('complete sign in with access key');
+    // const metaJson = {
+    //   calimeroRPCEndpoint: `${this._calimeroConfig.calimeroUrl}/api/v1/shards/${this._calimeroConfig.shardId}/neard-rpc`,
+    //   calimeroShardId: this._calimeroConfig.shardId,
+    //   calimeroAuthToken: this._calimeroConfig.calimeroToken,
+    // };
+    const txnParams = new URLSearchParams();
+    const currentUrl = new URL(window.location.href);
+    const newUrl = new URL('sign', this._walletBaseUrl);
 
-    const calimeroProvider = calimeroConnection.connection.provider;
-    let accessKey;
-
-    try{
-      accessKey = await calimeroProvider.query<AccessKeyView>({
-        ['request_type']: 'view_access_key',
-        ['finality']: 'final',
-        ['account_id']: sender || '',
-        ['public_key']: publicKey || '',
-      });
-    }catch(error){
-      console.error(error);
-      console.log('Error while accessing public key!');
-      return;
-    }
-    
-    const blockHash = nearAPI.utils.serialize.base_decode(accessKey.block_hash);
-    const nonce = accessKey.nonce+1;
-    const newKeyPair = KeyPair.fromRandom('ed25519');
-    const keystore = new nearAPI.keyStores.BrowserLocalStorageKeyStore();
-    keystore.setKey(this._calimeroConfig.shardId,
-      sender || '',
-      newKeyPair);
-    const actions = [
-      nearAPI.transactions.addKey(
-        newKeyPair.getPublicKey(),
-        nearAPI.transactions.functionCallAccessKey(
-          contractAddress,
-          methodNames,
-          allowance
-        )
-      ),
-    ];
-    const transaction = nearAPI.transactions.createTransaction(
-      sender || '',
-      newKeyPair.getPublicKey(),
-      sender || '',
-      nonce,
-      actions,
-      blockHash
-    );
-    
-    const batchTransactionArray : nearAPI.transactions.Transaction[] = [];
-    batchTransactionArray.push(transaction);
-    
-    await this.requestSignTransactions({
-      transactions: batchTransactionArray,
-      callbackUrl: window.location.href
-    });
-  };
+    txnParams.set('transactions', transactions
+      .map(transaction => serialize(SCHEMA, transaction))
+      .map(serialized => Buffer.from(serialized).toString('base64'))
+      .join(','));
+    newUrl.searchParams.set('callbackUrl', callbackUrl || currentUrl.href);
+    if (meta) newUrl.searchParams.set('meta', meta);
+    txnParams.set('calimeroRPCEndpoint', `${this._calimeroConfig.calimeroUrl}/api/v1/shards/${this._calimeroConfig.shardId}/neard-rpc`);
+    txnParams.set('calimeroShardId', this._calimeroConfig.shardId);
+    txnParams.set('calimeroAuthToken', this._calimeroConfig.calimeroToken);
+    newUrl.hash = txnParams.toString();
+    window.location.assign(newUrl.toString());
+  }
 }
