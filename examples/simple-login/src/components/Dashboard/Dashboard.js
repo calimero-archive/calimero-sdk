@@ -3,12 +3,11 @@ import { config } from "../../calimeroSdk";
 import { CalimeroSdk, WalletConnection } from "calimero-sdk";
 import * as nearAPI from "near-api-js";
 import { Contract } from "near-api-js";
-import { KeyPairEd25519 } from "near-api-js/lib/utils";
 import { InMemoryKeyStore } from "near-api-js/lib/key_stores";
 
 let walletConnectionObject = undefined;
 
-const constractName = "myft.my-awesome-shard.calimero.testnet";
+const constractName = process.env.REACT_APP_CONTRACT_NAME;
 
 const getContract = (account) => {
   return new Contract(
@@ -49,12 +48,9 @@ export default function Dashboard() {
   };
   useEffect(() => {
     const init = async () => {
-      // const keypair = KeyPairEd25519.fromString("ed25519:4cV7eNeNB1JPcnGzFAvTfBDkaXdjn87AkUduNyNt2hXsRu2FE8PBm5CHUWdRTT2SVgSNjntT6UQK1p7iGUdmnDPX");
-      // console.log(keypair.getPublicKey().toString());
       const calimero = await CalimeroSdk.init(config).connect();
       walletConnectionObject = new WalletConnection(calimero, constractName);
       await walletConnectionObject.isSignedInAsync();
-      console.log("signedIn", walletConnectionObject.isSignedIn());
       setSingnedIn(walletConnectionObject.isSignedIn());
     }
     init()
@@ -101,7 +97,6 @@ export default function Dashboard() {
         'x-api-key': config.calimeroToken,
       },
     });
-    await keyStore.setKey(config.shardId, constractName, KeyPairEd25519.fromString("ed25519:4cV7eNeNB1JPcnGzFAvTfBDkaXdjn87AkUduNyNt2hXsRu2FE8PBm5CHUWdRTT2SVgSNjntT6UQK1p7iGUdmnDPX"));
 
     const ownerAccount = await connection.account(constractName);
     
