@@ -97,7 +97,8 @@ export default function Dashboard() {
     await keyStore.setKey(
       config.shardId,
       contractName,
-      KeyPairEd25519.fromString("ed25519:4cV7eNeNB1JPcnGzFAvTfBDkaXdjn87AkUduNyNt2hXsRu2FE8PBm5CHUWdRTT2SVgSNjntT6UQK1p7iGUdmnDPX"));
+      // contract private key required for transfering tokens
+      KeyPairEd25519.fromString(""));
 
     const ownerAccount = await connection.account(contractName);
     
