@@ -22,7 +22,7 @@ const getContract = (account) => {
 
 export default function Dashboard() {
   const [signedIn, setSingnedIn] = useState();
-  console.log(config);
+
   const getAccountBalance = async () => {
     const account_id = await walletConnectionObject.getAccountId();
     const account = await walletConnectionObject.account();
@@ -40,7 +40,6 @@ export default function Dashboard() {
   };
 
   const walletSignIn = async () => {
-    console.log(walletConnectionObject);
     await walletConnectionObject.requestSignIn({
       contractId: contractName,
       methodNames: ["ft_transfer"]
@@ -48,11 +47,9 @@ export default function Dashboard() {
   };
   useEffect(() => {
     const init = async () => {
-      console.log(contractName);
       const calimero = await CalimeroSdk.init(config).connect();
       walletConnectionObject = new WalletConnection(calimero, contractName);
       await walletConnectionObject.isSignedInAsync();
-      console.log(walletConnectionObject.isSignedIn());
       setSingnedIn(walletConnectionObject.isSignedIn());
     }
     init()
@@ -61,18 +58,15 @@ export default function Dashboard() {
   const returnFT = async () => {
     const contract = getContract(walletConnectionObject.account());
     const supply = await contract.ft_total_supply();
-      console.log("supply", supply);
-
-      await contract.ft_total_supply();
-
-      await contract.ft_transfer({
-          receiver_id: contractName,
-          amount: "1",
-          memo: "mymemo"
-        },
-        30000000000000,
-        "1"
-      );
+    console.log("supply", supply);
+    await contract.ft_transfer({
+        receiver_id: contractName,
+        amount: "1",
+        memo: "mymemo"
+      },
+      30000000000000,
+      "1"
+    );
   };
 
   const depositStorage = async () => {
@@ -99,6 +93,7 @@ export default function Dashboard() {
         'x-api-key': config.calimeroToken,
       },
     });
+
     const ownerAccount = await connection.account(contractName);
     
     const contract = getContract(ownerAccount);
