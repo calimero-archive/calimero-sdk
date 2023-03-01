@@ -65,11 +65,13 @@ type RequestSignTransactionsOptions = { transactions, meta, callbackUrl };
 export class WalletConnection extends nearAPI.WalletConnection {
   _calimeroConfig: CalimeroConfig;
   _connection: Near;
+  _appPrefix: string | null;
 
   constructor(calimero: Calimero, appPrefix: string | null) {
     super(calimero.connection, appPrefix);
     this._connection = calimero.connection;
     this._calimeroConfig = calimero.config;
+    this._appPrefix = appPrefix;
   }
 
   async requestSignIn({ contractId, methodNames, successUrl, failureUrl }: SignInOptions): Promise<void> {
@@ -89,14 +91,12 @@ export class WalletConnection extends nearAPI.WalletConnection {
       /* Throws exception if contract account does not exist */
       console.log(super._near);
       const contractAccount = await this._connection.account(contractId);
-      console.log(contractAccount);
       await contractAccount.state();
 
       newUrl.searchParams.set('contract_id', contractId);
       const accessKey = KeyPair.fromRandom('ed25519');
       newUrl.searchParams.set('public_key', accessKey.getPublicKey().toString());
-      console.log('config', this._connection.config);
-      await this._connection.config.keyStore.setKey('needasmoke-calimero-testnet', PENDING_ACCESS_KEY_PREFIX + accessKey.getPublicKey(), accessKey);
+      await this._connection.config.keyStore.setKey(this._calimeroConfig.shardId, PENDING_ACCESS_KEY_PREFIX + accessKey.getPublicKey(), accessKey);
     }
 
     if (methodNames) {
@@ -109,12 +109,6 @@ export class WalletConnection extends nearAPI.WalletConnection {
   }
 
   async requestSignTransactions({ transactions, meta, callbackUrl }: RequestSignTransactionsOptions): Promise<void> {
-    console.log('complete sign in with access key');
-    // const metaJson = {
-    //   calimeroRPCEndpoint: `${this._calimeroConfig.calimeroUrl}/api/v1/shards/${this._calimeroConfig.shardId}/neard-rpc`,
-    //   calimeroShardId: this._calimeroConfig.shardId,
-    //   calimeroAuthToken: this._calimeroConfig.calimeroToken,
-    // };
     const txnParams = new URLSearchParams();
     const currentUrl = new URL(window.location.href);
     const newUrl = new URL('sign', this._walletBaseUrl);

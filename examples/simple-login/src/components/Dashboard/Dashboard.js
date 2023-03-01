@@ -8,10 +8,12 @@ import { InMemoryKeyStore } from "near-api-js/lib/key_stores";
 
 let walletConnectionObject = undefined;
 
+const constractName = "myft.my-awesome-shard.calimero.testnet";
+
 const getContract = (account) => {
   return new Contract(
     account, // the account object that is connecting
-    "myft.needasmoke.calimero.testnet",
+    constractName,
     {
       // name of contract you're connecting to
       viewMethods: ["ft_total_supply", "ft_balance_of", "storage_balance_of"], // view methods do not change state but usually return a value
@@ -21,14 +23,16 @@ const getContract = (account) => {
 
 export default function Dashboard() {
   const [signedIn, setSingnedIn] = useState();
+
   const getAccountBalance = async () => {
+    const account_id = await walletConnectionObject.getAccountId();
     const account = await walletConnectionObject.account();
     const balance = await account.getAccountBalance();
     const contract = getContract(account);
-    const accoutnStorageBalance = await contract.storage_balance_of({ account_id: "owoewoeowe.testnet" });
-    const accountFTBalance = await contract.ft_balance_of({ account_id: "owoewoeowe.testnet" });
-    const contractStorageBalance = await contract.storage_balance_of({ account_id: "myft.needasmoke.calimero.testnet" });
-    const contractFTBalance = await contract.ft_balance_of({ account_id: "myft.needasmoke.calimero.testnet" });
+    const accoutnStorageBalance = await contract.storage_balance_of({ account_id });
+    const accountFTBalance = await contract.ft_balance_of({ account_id });
+    const contractStorageBalance = await contract.storage_balance_of({ account_id: constractName });
+    const contractFTBalance = await contract.ft_balance_of({ account_id: constractName });
     console.log(balance);
     console.log(accountFTBalance);
     console.log(contractFTBalance);
@@ -39,15 +43,18 @@ export default function Dashboard() {
   const walletSignIn = async () => {
     console.log(walletConnectionObject);
     await walletConnectionObject.requestSignIn({
-      contractId: "myft.needasmoke.calimero.testnet",
+      contractId: constractName,
       methodNames: ["ft_transfer"]
     });
   };
   useEffect(() => {
     const init = async () => {
+      // const keypair = KeyPairEd25519.fromString("ed25519:4cV7eNeNB1JPcnGzFAvTfBDkaXdjn87AkUduNyNt2hXsRu2FE8PBm5CHUWdRTT2SVgSNjntT6UQK1p7iGUdmnDPX");
+      // console.log(keypair.getPublicKey().toString());
       const calimero = await CalimeroSdk.init(config).connect();
-      walletConnectionObject = new WalletConnection(calimero, "needasmoke");
+      walletConnectionObject = new WalletConnection(calimero, constractName);
       await walletConnectionObject.isSignedInAsync();
+      console.log("signedIn", walletConnectionObject.isSignedIn());
       setSingnedIn(walletConnectionObject.isSignedIn());
     }
     init()
@@ -61,7 +68,7 @@ export default function Dashboard() {
       await contract.ft_total_supply();
 
       await contract.ft_transfer({
-          receiver_id: "myft.needasmoke.calimero.testnet",
+          receiver_id: constractName,
           amount: "1",
           memo: "mymemo"
         },
@@ -94,14 +101,16 @@ export default function Dashboard() {
         'x-api-key': config.calimeroToken,
       },
     });
-    await keyStore.setKey(config.shardId, "myft.needasmoke.calimero.testnet", KeyPairEd25519.fromString("ed25519:4cV7eNeNB1JPcnGzFAvTfBDkaXdjn87AkUduNyNt2hXsRu2FE8PBm5CHUWdRTT2SVgSNjntT6UQK1p7iGUdmnDPX"));
+    await keyStore.setKey(config.shardId, constractName, KeyPairEd25519.fromString("ed25519:4cV7eNeNB1JPcnGzFAvTfBDkaXdjn87AkUduNyNt2hXsRu2FE8PBm5CHUWdRTT2SVgSNjntT6UQK1p7iGUdmnDPX"));
 
-    const ownerAccount = await connection.account("myft.needasmoke.calimero.testnet");
+    const ownerAccount = await connection.account(constractName);
     
     const contract = getContract(ownerAccount);
 
+    const receiver_id = await walletConnectionObject.getAccountId();
+
     await contract.ft_transfer({
-      receiver_id: "owoewoeowe.testnet",
+      receiver_id,
       amount: "20",
       memo: "mymemo"
     },
@@ -115,7 +124,6 @@ export default function Dashboard() {
     setSingnedIn(false);
   };
 
-  console.log(signedIn);
   const App = ({ isSignedIn }) => isSignedIn ? <PrivateComponent /> : <PublicComponent />;
 
   const PrivateComponent = () => (
