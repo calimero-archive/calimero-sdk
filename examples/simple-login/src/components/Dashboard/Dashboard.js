@@ -1,114 +1,140 @@
 import React, { useEffect, useState } from "react";
-import calimeroSdk from "../../calimeroSdk";
+import { config } from "../../calimeroSdk";
+import { CalimeroSdk, WalletConnection } from "calimero-sdk";
 import * as nearAPI from "near-api-js";
-import { Buffer } from "buffer";
-import walletConnection from "../../walletConnection";
+import { Contract } from "near-api-js";
+import { InMemoryKeyStore } from "near-api-js/lib/key_stores";
+
+let walletConnectionObject = undefined;
+
+const constractName = process.env.REACT_APP_CONTRACT_NAME;
+
+const getContract = (account) => {
+  return new Contract(
+    account, // the account object that is connecting
+    constractName,
+    {
+      // name of contract you're connecting to
+      viewMethods: ["ft_total_supply", "ft_balance_of", "storage_balance_of"], // view methods do not change state but usually return a value
+      changeMethods: ["storage_deposit", "ft_transfer"], // change methods modify state
+    });
+  }
 
 export default function Dashboard() {
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const [calimero, setCalimero] = useState();
-  const [walletConnectionObject, setWalletConnectionObject] = useState();
+  const [signedIn, setSingnedIn] = useState();
 
   const getAccountBalance = async () => {
-    const calimeroConnection = await calimero.connect();
-    const account = await calimeroConnection.connection.account(
-      localStorage.getItem("accountId")
-    );
+    const account_id = await walletConnectionObject.getAccountId();
+    const account = await walletConnectionObject.account();
     const balance = await account.getAccountBalance();
+    const contract = getContract(account);
+    const accoutnStorageBalance = await contract.storage_balance_of({ account_id });
+    const accountFTBalance = await contract.ft_balance_of({ account_id });
+    const contractStorageBalance = await contract.storage_balance_of({ account_id: constractName });
+    const contractFTBalance = await contract.ft_balance_of({ account_id: constractName });
     console.log(balance);
+    console.log(accountFTBalance);
+    console.log(contractFTBalance);
+    console.log(accoutnStorageBalance);
+    console.log(contractStorageBalance);
   };
 
   const walletSignIn = async () => {
-    await walletConnectionObject.requestSignIn({});
+    console.log(walletConnectionObject);
+    await walletConnectionObject.requestSignIn({
+      contractId: constractName,
+      methodNames: ["ft_transfer"]
+    });
   };
-  const walletSignOut = async () => {
-    await walletConnectionObject.signOut();
-  };
-  const addFunctionkey = async () => {
-    await walletConnectionObject.addFunctionKey(
-      "tictactoe.fran.calimero.testnet",
-      ["make_a_move", "start_game"],
-      nearAPI.utils.format.parseNearAmount("1"),
-      localStorage.getItem("calimeroToken")
-    );
-  };
-  const contractCall = async () => {
-    const accountId = localStorage.getItem("accountId");
-    const publicKey = localStorage.getItem("publicKey");
-
-    const calimeroConnection = await calimero.connect();
-    const walletConnection = new nearAPI.WalletConnection(
-      calimeroConnection.connection
-    );
-    walletConnection._authData = { accountId, allKeys: [publicKey] };
-
-    const account = await walletConnection.account(accountId);
-
-    const contractArgs = {
-      player_a: accountId,
-      player_b: "zone.testnet",
-    };
-
-    const metaJson = {
-      calimeroRPCEndpoint: calimeroConnection.config.nodeUrl,
-      calimeroShardId: calimeroConnection.config.networkId,
-      calimeroAuthToken: localStorage.getItem("calimeroToken"),
-    };
-    const meta = JSON.stringify(metaJson);
-
-    try {
-      await account.signAndSendTransaction({
-        receiverId: "tictactoe.fran.calimero.testnet",
-        actions: [
-          nearAPI.transactions.functionCall(
-            "start_game",
-            Buffer.from(JSON.stringify(contractArgs)),
-            10000000000000,
-            "0"
-          ),
-        ],
-        walletMeta: meta,
-      });
-    } catch (error) {
-      console.log(error);
+  useEffect(() => {
+    const init = async () => {
+      const calimero = await CalimeroSdk.init(config).connect();
+      walletConnectionObject = new WalletConnection(calimero, constractName);
+      await walletConnectionObject.isSignedInAsync();
+      setSingnedIn(walletConnectionObject.isSignedIn());
     }
+    init()
+  }, []);
+
+  const returnFT = async () => {
+    const contract = getContract(walletConnectionObject.account());
+    const supply = await contract.ft_total_supply();
+      console.log("supply", supply);
+
+      await contract.ft_total_supply();
+
+      await contract.ft_transfer({
+          receiver_id: constractName,
+          amount: "1",
+          memo: "mymemo"
+        },
+        30000000000000,
+        "1"
+      );
   };
+
+  const depositStorage = async () => {
+    const contract = getContract(walletConnectionObject.account());
+    await contract.storage_deposit(
+    {},
+        30000000000000, // attached gas
+        nearAPI.utils.format.parseNearAmount('1') // account creation costs 0.00125 NEAR for storage
+    );
+  }
+
+
+  const claimFts = async () => {
+    const keyStore = new InMemoryKeyStore();
+    console.log(keyStore);
+
+    const connection = await nearAPI.connect({
+      networkId: config.shardId,
+      keyStore: keyStore,
+      signer: new nearAPI.InMemorySigner(keyStore),
+      nodeUrl: `${config.calimeroUrl}/api/v1/shards/${config.shardId}/neard-rpc`,
+      walletUrl: config.walletUrl,
+      headers: {
+        'x-api-key': config.calimeroToken,
+      },
+    });
+
+    const ownerAccount = await connection.account(constractName);
+    
+    const contract = getContract(ownerAccount);
+
+    const receiver_id = await walletConnectionObject.getAccountId();
+
+    await contract.ft_transfer({
+      receiver_id,
+      amount: "20",
+      memo: "mymemo"
+    },
+    30000000000000,
+    "1"
+    );    
+  }
+
+  const logout = async () => {
+    await walletConnectionObject.signOut();
+    setSingnedIn(false);
+  };
+
+  const App = ({ isSignedIn }) => isSignedIn ? <PrivateComponent /> : <PublicComponent />;
 
   const PrivateComponent = () => (
     <div>
       <button onClick={() => getAccountBalance()}>Get Balance</button>
-      <button onClick={() => addFunctionkey()}>Add Function Key</button>
-      <button onClick={() => contractCall()}>Contract Call</button>
-      <button onClick={() => walletSignOut()}>Logout</button>
+      <button onClick={() => depositStorage()}>Register FT</button>
+      <button onClick={() => returnFT()}>Transfer a token</button>
+      <button onClick={() => claimFts()}>Claim 20 tokens</button>
+      <button onClick={() => logout()}>Logout</button>
     </div>
   );
-
+  
   const PublicComponent = () => (
     <div>
       <button onClick={() => walletSignIn()}>Login with NEAR</button>
     </div>
   );
-
-  useEffect(() => {
-    const initialiseWalletConnection = async () => {
-      setIsSignedIn(walletConnectionObject.isSignedIn());
-    };
-    if (walletConnectionObject) {
-      initialiseWalletConnection();
-    }
-  }, [walletConnectionObject]);
-
-  useEffect(() => {
-    const initialiseCalimero = async () => {
-      setCalimero(calimeroSdk);
-      const wallet = await walletConnection();
-      setWalletConnectionObject(wallet);
-    };
-
-    if (!calimero || !walletConnectionObject) {
-      initialiseCalimero();
-    }
-  }, [calimero, walletConnectionObject]);
-
-  return isSignedIn ? <PrivateComponent /> : <PublicComponent />;
+  return <App isSignedIn={signedIn} />;
 }
