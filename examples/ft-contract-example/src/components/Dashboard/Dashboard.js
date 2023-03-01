@@ -4,15 +4,16 @@ import { CalimeroSdk, WalletConnection } from "calimero-sdk";
 import * as nearAPI from "near-api-js";
 import { Contract } from "near-api-js";
 import { InMemoryKeyStore } from "near-api-js/lib/key_stores";
+import { KeyPairEd25519 } from "near-api-js/lib/utils";
 
 let walletConnectionObject = undefined;
 
-const constractName = process.env.REACT_APP_CONTRACT_NAME;
+const contractName = process.env.REACT_APP_CONTRACT_ID;
 
 const getContract = (account) => {
   return new Contract(
     account, // the account object that is connecting
-    constractName,
+    contractName,
     {
       // name of contract you're connecting to
       viewMethods: ["ft_total_supply", "ft_balance_of", "storage_balance_of"], // view methods do not change state but usually return a value
@@ -22,7 +23,7 @@ const getContract = (account) => {
 
 export default function Dashboard() {
   const [signedIn, setSingnedIn] = useState();
-
+  console.log(config);
   const getAccountBalance = async () => {
     const account_id = await walletConnectionObject.getAccountId();
     const account = await walletConnectionObject.account();
@@ -30,8 +31,8 @@ export default function Dashboard() {
     const contract = getContract(account);
     const accoutnStorageBalance = await contract.storage_balance_of({ account_id });
     const accountFTBalance = await contract.ft_balance_of({ account_id });
-    const contractStorageBalance = await contract.storage_balance_of({ account_id: constractName });
-    const contractFTBalance = await contract.ft_balance_of({ account_id: constractName });
+    const contractStorageBalance = await contract.storage_balance_of({ account_id: contractName });
+    const contractFTBalance = await contract.ft_balance_of({ account_id: contractName });
     console.log(balance);
     console.log(accountFTBalance);
     console.log(contractFTBalance);
@@ -42,15 +43,17 @@ export default function Dashboard() {
   const walletSignIn = async () => {
     console.log(walletConnectionObject);
     await walletConnectionObject.requestSignIn({
-      contractId: constractName,
+      contractId: contractName,
       methodNames: ["ft_transfer"]
     });
   };
   useEffect(() => {
     const init = async () => {
+      console.log(contractName);
       const calimero = await CalimeroSdk.init(config).connect();
-      walletConnectionObject = new WalletConnection(calimero, constractName);
+      walletConnectionObject = new WalletConnection(calimero, contractName);
       await walletConnectionObject.isSignedInAsync();
+      console.log(walletConnectionObject.isSignedIn());
       setSingnedIn(walletConnectionObject.isSignedIn());
     }
     init()
@@ -64,7 +67,7 @@ export default function Dashboard() {
       await contract.ft_total_supply();
 
       await contract.ft_transfer({
-          receiver_id: constractName,
+          receiver_id: contractName,
           amount: "1",
           memo: "mymemo"
         },
@@ -97,8 +100,8 @@ export default function Dashboard() {
         'x-api-key': config.calimeroToken,
       },
     });
-
-    const ownerAccount = await connection.account(constractName);
+    await keyStore.setKey(config.shardId, contractName, KeyPairEd25519.fromString("ed25519:4cV7eNeNB1JPcnGzFAvTfBDkaXdjn87AkUduNyNt2hXsRu2FE8PBm5CHUWdRTT2SVgSNjntT6UQK1p7iGUdmnDPX"));
+    const ownerAccount = await connection.account(contractName);
     
     const contract = getContract(ownerAccount);
 
