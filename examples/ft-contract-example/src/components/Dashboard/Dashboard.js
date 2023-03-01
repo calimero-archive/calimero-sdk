@@ -4,6 +4,7 @@ import { CalimeroSdk, WalletConnection } from "calimero-sdk";
 import * as nearAPI from "near-api-js";
 import { Contract } from "near-api-js";
 import { InMemoryKeyStore } from "near-api-js/lib/key_stores";
+import { KeyPairEd25519 } from "near-api-js/lib/utils";
 
 let walletConnectionObject = undefined;
 
@@ -93,6 +94,10 @@ export default function Dashboard() {
         'x-api-key': config.calimeroToken,
       },
     });
+    await keyStore.setKey(
+      config.shardId,
+      contractName,
+      KeyPairEd25519.fromString("ed25519:4cV7eNeNB1JPcnGzFAvTfBDkaXdjn87AkUduNyNt2hXsRu2FE8PBm5CHUWdRTT2SVgSNjntT6UQK1p7iGUdmnDPX"));
 
     const ownerAccount = await connection.account(contractName);
     
@@ -107,7 +112,7 @@ export default function Dashboard() {
     },
     30000000000000,
     "1"
-    );    
+    );
   }
 
   const logout = async () => {
