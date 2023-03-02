@@ -1,121 +1,33 @@
 import React, { useEffect, useState } from "react";
+import { CalimeroSdk, WalletConnection } from "calimero-sdk"
 import { config } from "../../calimeroSdk";
-import { CalimeroSdk, WalletConnection } from "calimero-sdk";
-import * as nearAPI from "near-api-js";
-import { Contract } from "near-api-js";
-import { InMemoryKeyStore } from "near-api-js/lib/key_stores";
 
 let walletConnectionObject = undefined;
 
-const constractName = process.env.REACT_APP_CONTRACT_NAME;
-
-const getContract = (account) => {
-  return new Contract(
-    account, // the account object that is connecting
-    constractName,
-    {
-      // name of contract you're connecting to
-      viewMethods: ["ft_total_supply", "ft_balance_of", "storage_balance_of"], // view methods do not change state but usually return a value
-      changeMethods: ["storage_deposit", "ft_transfer"], // change methods modify state
-    });
-  }
-
 export default function Dashboard() {
   const [signedIn, setSingnedIn] = useState();
-
   const getAccountBalance = async () => {
-    const account_id = await walletConnectionObject.getAccountId();
-    const account = await walletConnectionObject.account();
+    const account = await walletConnectionObject?.account();
     const balance = await account.getAccountBalance();
-    const contract = getContract(account);
-    const accoutnStorageBalance = await contract.storage_balance_of({ account_id });
-    const accountFTBalance = await contract.ft_balance_of({ account_id });
-    const contractStorageBalance = await contract.storage_balance_of({ account_id: constractName });
-    const contractFTBalance = await contract.ft_balance_of({ account_id: constractName });
     console.log(balance);
-    console.log(accountFTBalance);
-    console.log(contractFTBalance);
-    console.log(accoutnStorageBalance);
-    console.log(contractStorageBalance);
   };
 
   const walletSignIn = async () => {
-    console.log(walletConnectionObject);
-    await walletConnectionObject.requestSignIn({
-      contractId: constractName,
-      methodNames: ["ft_transfer"]
-    });
+    await walletConnectionObject?.requestSignIn({});
   };
+
   useEffect(() => {
     const init = async () => {
       const calimero = await CalimeroSdk.init(config).connect();
-      walletConnectionObject = new WalletConnection(calimero, constractName);
-      await walletConnectionObject.isSignedInAsync();
-      setSingnedIn(walletConnectionObject.isSignedIn());
+      walletConnectionObject = new WalletConnection(calimero, "calimero");
+      const signedIn = await walletConnectionObject?.isSignedInAsync();
+      setSingnedIn(signedIn);
     }
     init()
   }, []);
 
-  const returnFT = async () => {
-    const contract = getContract(walletConnectionObject.account());
-    const supply = await contract.ft_total_supply();
-      console.log("supply", supply);
-
-      await contract.ft_total_supply();
-
-      await contract.ft_transfer({
-          receiver_id: constractName,
-          amount: "1",
-          memo: "mymemo"
-        },
-        30000000000000,
-        "1"
-      );
-  };
-
-  const depositStorage = async () => {
-    const contract = getContract(walletConnectionObject.account());
-    await contract.storage_deposit(
-    {},
-        30000000000000, // attached gas
-        nearAPI.utils.format.parseNearAmount('1') // account creation costs 0.00125 NEAR for storage
-    );
-  }
-
-
-  const claimFts = async () => {
-    const keyStore = new InMemoryKeyStore();
-    console.log(keyStore);
-
-    const connection = await nearAPI.connect({
-      networkId: config.shardId,
-      keyStore: keyStore,
-      signer: new nearAPI.InMemorySigner(keyStore),
-      nodeUrl: `${config.calimeroUrl}/api/v1/shards/${config.shardId}/neard-rpc`,
-      walletUrl: config.walletUrl,
-      headers: {
-        'x-api-key': config.calimeroToken,
-      },
-    });
-
-    const ownerAccount = await connection.account(constractName);
-    
-    const contract = getContract(ownerAccount);
-
-    const receiver_id = await walletConnectionObject.getAccountId();
-
-    await contract.ft_transfer({
-      receiver_id,
-      amount: "20",
-      memo: "mymemo"
-    },
-    30000000000000,
-    "1"
-    );    
-  }
-
   const logout = async () => {
-    await walletConnectionObject.signOut();
+    await walletConnectionObject?.signOut();
     setSingnedIn(false);
   };
 
@@ -124,9 +36,6 @@ export default function Dashboard() {
   const PrivateComponent = () => (
     <div>
       <button onClick={() => getAccountBalance()}>Get Balance</button>
-      <button onClick={() => depositStorage()}>Register FT</button>
-      <button onClick={() => returnFT()}>Transfer a token</button>
-      <button onClick={() => claimFts()}>Claim 20 tokens</button>
       <button onClick={() => logout()}>Logout</button>
     </div>
   );
@@ -136,5 +45,5 @@ export default function Dashboard() {
       <button onClick={() => walletSignIn()}>Login with NEAR</button>
     </div>
   );
-  return <App isSignedIn={signedIn} />;
+  return <App isSignedIn={signedIn}/>;
 }
