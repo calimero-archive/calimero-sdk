@@ -25,8 +25,8 @@ export default function Dashboard() {
   const [signedIn, setSingnedIn] = useState();
 
   const getAccountBalance = async () => {
-    const account_id = await walletConnectionObject.getAccountId();
-    const account = await walletConnectionObject.account();
+    const account_id = await walletConnectionObject?.getAccountId();
+    const account = await walletConnectionObject?.account();
     const balance = await account.getAccountBalance();
     const contract = getContract(account);
     const accoutnStorageBalance = await contract.storage_balance_of({ account_id });
@@ -50,14 +50,14 @@ export default function Dashboard() {
     const init = async () => {
       const calimero = await CalimeroSdk.init(config).connect();
       walletConnectionObject = new WalletConnection(calimero, contractName);
-      const signedIn = await walletConnectionObject.isSignedInAsync();
+      const signedIn = await walletConnectionObject?.isSignedInAsync();
       setSingnedIn(signedIn);
     }
     init()
   }, []);
 
   const returnFT = async () => {
-    const contract = getContract(walletConnectionObject.account());
+    const contract = getContract(walletConnectionObject?.account());
     const supply = await contract.ft_total_supply();
     console.log("supply", supply);
     await contract.ft_transfer({
@@ -71,7 +71,7 @@ export default function Dashboard() {
   };
 
   const depositStorage = async () => {
-    const contract = getContract(walletConnectionObject.account());
+    const contract = getContract(walletConnectionObject?.account());
     await contract.storage_deposit(
     {},
         30000000000000, // attached gas
@@ -104,7 +104,7 @@ export default function Dashboard() {
     
     const contract = getContract(ownerAccount);
 
-    const receiver_id = await walletConnectionObject.getAccountId();
+    const receiver_id = await walletConnectionObject?.getAccountId();
 
     await contract.ft_transfer({
       receiver_id,
@@ -117,7 +117,7 @@ export default function Dashboard() {
   }
 
   const logout = async () => {
-    await walletConnectionObject.signOut();
+    await walletConnectionObject?.signOut();
     setSingnedIn(false);
   };
 

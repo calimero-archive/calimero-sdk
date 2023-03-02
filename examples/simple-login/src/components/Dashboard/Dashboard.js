@@ -7,27 +7,27 @@ let walletConnectionObject = undefined;
 export default function Dashboard() {
   const [signedIn, setSingnedIn] = useState();
   const getAccountBalance = async () => {
-    const account = await walletConnectionObject.account();
+    const account = await walletConnectionObject?.account();
     const balance = await account.getAccountBalance();
     console.log(balance);
   };
 
   const walletSignIn = async () => {
-    await walletConnectionObject.requestSignIn({});
+    await walletConnectionObject?.requestSignIn({});
   };
 
   useEffect(() => {
     const init = async () => {
       const calimero = await CalimeroSdk.init(config).connect();
       walletConnectionObject = new WalletConnection(calimero, "calimero");
-      const signedIn = await walletConnectionObject.isSignedInAsync();
+      const signedIn = await walletConnectionObject?.isSignedInAsync();
       setSingnedIn(signedIn);
     }
     init()
   }, []);
 
   const logout = async () => {
-    await walletConnectionObject.signOut();
+    await walletConnectionObject?.signOut();
     setSingnedIn(false);
   };
 
