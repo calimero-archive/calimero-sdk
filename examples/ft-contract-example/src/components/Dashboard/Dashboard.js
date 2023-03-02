@@ -50,8 +50,8 @@ export default function Dashboard() {
     const init = async () => {
       const calimero = await CalimeroSdk.init(config).connect();
       walletConnectionObject = new WalletConnection(calimero, contractName);
-      await walletConnectionObject.isSignedInAsync();
-      setSingnedIn(walletConnectionObject.isSignedIn());
+      const signedIn = await walletConnectionObject.isSignedInAsync();
+      setSingnedIn(signedIn);
     }
     init()
   }, []);
