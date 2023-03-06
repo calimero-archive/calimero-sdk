@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { CalimeroSdk, WalletConnection } from "calimero-sdk"
-import { config } from "../../calimeroSdk";
+import { config } from "../../calimeroConfig";
 
 let walletConnectionObject = undefined;
 
@@ -19,7 +19,7 @@ export default function Dashboard() {
   useEffect(() => {
     const init = async () => {
       const calimero = await CalimeroSdk.init(config).connect();
-      walletConnectionObject = new WalletConnection(calimero, "calimero");
+      walletConnectionObject = new WalletConnection(calimero, "calimero-simple-login");
       const signedIn = await walletConnectionObject?.isSignedInAsync();
       setSingnedIn(signedIn);
     }
@@ -27,7 +27,7 @@ export default function Dashboard() {
   }, []);
 
   const logout = async () => {
-    await walletConnectionObject?.signOut();
+    walletConnectionObject?.signOut();
     setSingnedIn(false);
   };
 

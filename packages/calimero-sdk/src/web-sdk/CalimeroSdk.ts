@@ -5,14 +5,15 @@ import { Buffer } from 'buffer';
 import { serialize } from 'borsh';
 import { SCHEMA } from 'near-api-js/lib/transaction';
 
+import { parseRpcUrl } from '../utils/parseRpcUrl';
+
 
 const SHARD_LOGIN_WALLET_URL_SUFFIX = '/login/';
 const PENDING_ACCESS_KEY_PREFIX = 'pending_key';
 interface CalimeroConfig {
-  shardId: string;
+  shardId?: string;
   calimeroUrl: string;
-  walletUrl: string;
-  calimeroWebSdkService: string;
+  walletUrl?: string;
   calimeroToken: string;
 }
 
@@ -33,7 +34,8 @@ export class CalimeroSdk {
   private _config: CalimeroConfig;
 
   private constructor(config: CalimeroConfig) {
-    this._config = config;
+    const parsedUrl = parseRpcUrl(config.calimeroUrl);
+    this._config = {...parsedUrl, ...config};
   }
 
   static init(config: CalimeroConfig): CalimeroSdk {
@@ -47,7 +49,7 @@ export class CalimeroSdk {
       networkId: this._config.shardId,
       keyStore: keyStore,
       signer: new InMemorySigner(keyStore),
-      nodeUrl: `${this._config.calimeroUrl}/api/v1/shards/${this._config.shardId}/neard-rpc`,
+      nodeUrl: this._config.calimeroUrl,
       walletUrl: this._config.walletUrl,
       headers: {
         ['x-api-key']: this._config.calimeroToken,
@@ -83,7 +85,7 @@ export class WalletConnection extends nearAPI.WalletConnection {
     newUrl.searchParams.set('success_url', successUrl || currentUrl.href);
     newUrl.searchParams.set('failure_url', failureUrl || currentUrl.href);
     const hashParams = new URLSearchParams();
-    hashParams.set('calimeroRPCEndpoint', `${this._calimeroConfig.calimeroUrl}/api/v1/shards/${this._calimeroConfig.shardId}/neard-rpc`);
+    hashParams.set('calimeroRPCEndpoint', this._calimeroConfig.calimeroUrl);
     hashParams.set('calimeroAuthToken', this._calimeroConfig.calimeroToken);
     hashParams.set('calimeroShardId', this._calimeroConfig.shardId);
     newUrl.hash = hashParams.toString();
@@ -119,7 +121,7 @@ export class WalletConnection extends nearAPI.WalletConnection {
       .join(','));
     newUrl.searchParams.set('callbackUrl', callbackUrl || currentUrl.href);
     if (meta) newUrl.searchParams.set('meta', meta);
-    txnParams.set('calimeroRPCEndpoint', `${this._calimeroConfig.calimeroUrl}/api/v1/shards/${this._calimeroConfig.shardId}/neard-rpc`);
+    txnParams.set('calimeroRPCEndpoint', this._calimeroConfig.calimeroUrl);
     txnParams.set('calimeroShardId', this._calimeroConfig.shardId);
     txnParams.set('calimeroAuthToken', this._calimeroConfig.calimeroToken);
     newUrl.hash = txnParams.toString();
