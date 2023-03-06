@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { config } from "../../calimeroSdk";
+import { config } from "../../calimeroConfig";
 import { CalimeroSdk, WalletConnection } from "calimero-sdk";
 import * as nearAPI from "near-api-js";
 import { Contract } from "near-api-js";
@@ -49,7 +49,7 @@ export default function Dashboard() {
   useEffect(() => {
     const init = async () => {
       const calimero = await CalimeroSdk.init(config).connect();
-      walletConnectionObject = new WalletConnection(calimero, contractName);
+      walletConnectionObject = new WalletConnection(calimero, "calimero-ft-example");
       const signedIn = await walletConnectionObject?.isSignedInAsync();
       setSingnedIn(signedIn);
     }
@@ -88,7 +88,7 @@ export default function Dashboard() {
       networkId: config.shardId,
       keyStore: keyStore,
       signer: new nearAPI.InMemorySigner(keyStore),
-      nodeUrl: `${config.calimeroUrl}/api/v1/shards/${config.shardId}/neard-rpc`,
+      nodeUrl: `config.calimeroUrl`,
       walletUrl: config.walletUrl,
       headers: {
         'x-api-key': config.calimeroToken,
@@ -117,7 +117,7 @@ export default function Dashboard() {
   }
 
   const logout = async () => {
-    await walletConnectionObject?.signOut();
+    walletConnectionObject?.signOut();
     setSingnedIn(false);
   };
 
