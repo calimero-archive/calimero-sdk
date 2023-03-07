@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { config } from "../../calimeroConfig";
-import { CalimeroSdk, WalletConnection } from "calimero-sdk";
+import { config } from "./calimeroConfig";
+import { CalimeroSdk, WalletConnection } from "calimero-sdk"
+import { useState, useEffect } from "react";
 import * as nearAPI from "near-api-js";
 import { Contract } from "near-api-js";
 import { InMemoryKeyStore } from "near-api-js/lib/key_stores";
@@ -8,7 +8,7 @@ import { KeyPairEd25519 } from "near-api-js/lib/utils";
 
 let walletConnectionObject = undefined;
 
-const contractName = process.env.REACT_APP_CONTRACT_ID;
+const contractName = import.meta.env.VITE_CONTRACT_ID;
 
 const getContract = (account) => {
   return new Contract(
@@ -21,7 +21,7 @@ const getContract = (account) => {
     });
   }
 
-export default function Dashboard() {
+function App() {
   const [signedIn, setSingnedIn] = useState();
 
   const getAccountBalance = async () => {
@@ -29,14 +29,14 @@ export default function Dashboard() {
     const account = await walletConnectionObject?.account();
     const balance = await account.getAccountBalance();
     const contract = getContract(account);
-    const accoutnStorageBalance = await contract.storage_balance_of({ account_id });
+    const accountStorageBalance = await contract.storage_balance_of({ account_id });
     const accountFTBalance = await contract.ft_balance_of({ account_id });
     const contractStorageBalance = await contract.storage_balance_of({ account_id: contractName });
     const contractFTBalance = await contract.ft_balance_of({ account_id: contractName });
     console.log(balance);
     console.log(accountFTBalance);
     console.log(contractFTBalance);
-    console.log(accoutnStorageBalance);
+    console.log(accountStorageBalance);
     console.log(contractStorageBalance);
   };
 
@@ -139,4 +139,7 @@ export default function Dashboard() {
     </div>
   );
   return <App isSignedIn={signedIn} />;
+
 }
+
+export default App
