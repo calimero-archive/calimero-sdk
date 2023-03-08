@@ -15,5 +15,5 @@ export const PERMISSIONS_CONTRACT_PREFIX = 'permissions.';
 
 export const CALIMERO_RPC_NODE_URL_DEV = 'https://api.dev.calimero.network/api/v1/shards/';
 export const CALIMERO_RPC_NODE_URL_STAGE = 'https://api.staging.calimero.network/api/v1/shards/';
-export const CALIMERO_RPC_NODE_URL_PROD = 'https://api.testnet.calimero.network/api/v1/shards/';
+export const CALIMERO_RPC_NODE_URL_PROD = 'https://api.calimero.network/api/v1/shards/';
 export const CALIMERO_RPC_NODE_SUFFIX = '/neard-rpc/';
