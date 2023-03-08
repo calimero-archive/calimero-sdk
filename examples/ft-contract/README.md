@@ -15,7 +15,7 @@ git clone https://github.com/calimero-is-near/calimero-sdk
 Navigate to the project directory.
 
 ```
-cd examples/simple-login
+cd examples/ft-contract
 ```
 Install the project dependencies.
 

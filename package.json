@@ -16,7 +16,7 @@
     "buildExample": "cd packages/calimero-sdk && rm -rf node_modules && pnpm add js-sha256 && cd ../.. && rm -rf node_modules && pnpm install && pnpm build && cd examples/simple-login && rm -rf node_modules && pnpm install && pnpm add near-api-js && pnpm add bn.js && pnpm run start",
     "quickBuild": "pnpm install && pnpm build && cd examples/simple-login && pnpm run start",
     "buildSdk": "pnpm install && pnpm build",
-    "runExample": "cd examples/simple-login && pnpm run start"
+    "runExample": "cd examples/simple-login && pnpm dev"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.4.6",
