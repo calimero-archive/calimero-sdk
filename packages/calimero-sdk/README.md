@@ -21,7 +21,7 @@ $ yarn add calimero-sdk
 
 | Method        | Description   | Paremeters  |     Return   |
 | ------------- | :------------- | :--------------- | :--------- |
-| init ( config )  | Initialize a new  instance of CalimeroSdk.  | shardId : <i>string</i><br> calimeroUrl : <i>string</i> <br> walletUrl : <i>string</i> <br> calimeroWebSdkService : <i>string</i> | <i>CalimeroSdk : Object</i> |
+| init ( config )  | Initialize a new  instance of CalimeroSdk.  | shardId : <i>string / undefined</i><br> calimeroUrl : <i>string</i> <br> walletUrl : <i>string / undefined</i> <br> calimeroToken : <i>string</i> | <i>CalimeroSdk : Object</i> |
 | connect() |Connect to a Calimero private shard  using NEAR wallet and near-api-js | | <i>Connection : CalimeroConnection <br> config : CalimeroConfig</i>|
 
 
@@ -30,17 +30,17 @@ $ yarn add calimero-sdk
 | Method        | Description   | Parameters  |     Return   |
 | ------------- | :------------- | :------------- | :----------- |
 | new WalletConnection ( <br> calimero,<br> appPrefix<br> ) | Creates a new wallet connection instance which extends near-api-js WalletConnection | calimero : <i>CalimeroSdk</i><br>  appPrefix : <i>String</i> | <i>WalletConnection : WalletConnection</i> |
-| requestSignIn( successUrl ) | Connect wallet with a Calimero private shard and sync account | successUrl : <i> SignInOptions </i> | <i>Promise : void </i> | 
-| requestSignTransactions (<br>transactions,<br>callbackUrl<br>) | Sign and approve requested transactions with wallet redirect | transactions : <i>string</i><br> callbackUrl : <i>string</i> | <i> Promise : void </i> | 
-| addFunctionKey ( <br> contractAddress,<br> methodNames,<br> allowance,<br> xApiKey<br>) | Create and add function call key with allocated allowance for calling contract methods inside the Calimero private shard | contractAddress : <i>string</i><br> methodNames : <i>string[]</i><br> allowance : <i>BN</i><br> xApiKey : <i>string</i> | <i>Promise : void</i> |
+| requestSignIn({ <br>contractId,<br>methodNames,<br>successUrl,<br>failureUrl}) | Connect wallet with a Calimero private shard and sync account. Creates function key if methodNames and contractId provided. | contractId: <i>string / undefined</i><br> methodNames: <i>string[] / undefined</i><br> successUrl: <i>string / undefined</i><br> failureUrl : <i>string / undefined</i> | <i>Promise : void </i> | 
+| requestSignTransactions (<br>transactions,<br>meta,<br>callbackUrl<br>) | Sign and approve requested transactions with wallet redirect | transactions : <i>string</i><br> meta : <i>any</i><br> callbackUrl : <i>string</i> | <i> Promise : void </i> | 
 
 
 
-## <i>AddFunctionKey paremeters in depth</i>
-`contractAddress` : string - Address of account / contract located in the Calimero private shard. 
-`methodName` : string[] - String array of change functions available in smart contract. 
-`allowance` : BN - Amount allowed to spend with function key. BN simbolises big number (yoctoNEAR). 
-`xApiKey` : string - Calimero Auth token key. Can be created from Calimero Console token page or fetched from local storage under 'AUTH_TOKEN_KEY'. 
+
+## <i>RequestSignIn paremeters in depth</i>
+`contractId` : string - Address of account / contract located in the Calimero private shard. 
+`methodNames` : string[] - String array of change functions available in smart contract. 
+`successUrl` : string - Web page URL that a user is redirected to after successfully completing sign in
+`failureUrl` : string - Web page URL that a user is redirected to after failing to complete sign in
 
 
 
@@ -50,80 +50,105 @@ $ yarn add calimero-sdk
 ### Initialise new CalimeroSdk instance 
 ReactJS example with environment variables.
 ```
-# calimeroSdk.js
+# index.js
 
-import { CalimeroSdk } from "calimero-auth-sdk";
+import { CalimeroSdk, WalletConnection } from "calimero-sdk"
+import { useEffect } from "react";
 
-export default CalimeroSdk.init({
+const config = {
   shardId: process.env.REACT_APP_CALIMERO_SHARD_ID,
   walletUrl: process.env.REACT_APP_WALLET_ENDPOINT_URL,
   calimeroUrl: process.env.REACT_APP_CALIMERO_ENDPOINT_URL,
-  calimeroWebSdkService: process.env.REACT_APP_CALIMERO_WEB_SDK_SERVICE_URL,
-});
+  calimeroToken: process.env.REACT_APP_CALIMERO_TOKEN,
+}
+
+
+let calimero = undefined;
+
+useEffect(() => {
+    const init = async () => {
+      calimero = await CalimeroSdk.init(config).connect();
+    }
+    init()
+}, []);
 ```
 
 ### Initialise new WalletConnection instance
 ReactJS example with environment variables.
 ```
-# walletConnection.js
+# index.js
 
-import { WalletConnection } from "calimero-sdk";
-import calimeroSdk from "./calimeroSdk";
+import { CalimeroSdk, WalletConnection } from "calimero-sdk"
+import { useEffect } from "react";
 
-export const walletConnection = async () => {
-  const calimero = await calimeroSdk.connect();
-  return new WalletConnection(calimero, "calimero");
-};
+const config = {
+  shardId: process.env.REACT_APP_CALIMERO_SHARD_ID,
+  walletUrl: process.env.REACT_APP_WALLET_ENDPOINT_URL,
+  calimeroUrl: process.env.REACT_APP_CALIMERO_ENDPOINT_URL,
+  calimeroToken: process.env.REACT_APP_CALIMERO_TOKEN,
+}
 
-export default walletConnection;
+
+let walletConnectionObject = undefined;
+
+useEffect(() => {
+    const init = async () => {
+      calimero = await CalimeroSdk.init(config).connect();
+      walletConnectionObject = new WalletConnection(calimero, "calimero-simple-login");
+    }
+    init()
+}, []);
 ```
 ### Create simple login flow with HTML and JavaScript in ReactJS
 ```
 # index.js
 
-import React, { useEffect, useState } from "react";
-import calimeroSdk from "./calimeroSdk";
-import walletConnection from "./walletConnection";
+import { config } from "./calimeroConfig";
+import { CalimeroSdk, WalletConnection } from "calimero-sdk"
+import { useState, useEffect } from "react";
 
-export default function Dashboard() {
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const [calimero, setCalimero] = useState();
-  const [walletConnectionObject, setWalletConnectionObject] = useState();
+let walletConnectionObject = undefined;
+
+function App() {
+  const [signedIn, setSingnedIn] = useState();
+
+  const walletSignIn = async () => {
+    await walletConnectionObject?.requestSignIn({});
+  };
+
+  const logout = async () => {
+    walletConnectionObject?.signOut();
+    setSingnedIn(false);
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      const calimero = await CalimeroSdk.init(config).connect();
+      walletConnectionObject = new WalletConnection(calimero, "calimero-simple-login");
+      const signedIn = await walletConnectionObject?.isSignedInAsync();
+      setSingnedIn(signedIn);
+    }
+    init()
+  }, []);
+  
+  const App = ({ isSignedIn }) => isSignedIn ? <PrivateComponent /> : <PublicComponent />;
+
   const PrivateComponent = () => (
-        <div>
-        <button onClick={() => walletConnectionObject.signOut() }> Logout </button>
-        </div>
+    <div>
+      <button onClick={() => logout()}>Logout</button>
+    </div>
   );
-
+  
   const PublicComponent = () => (
-        <div>
-        <button onClick={ () => walletConnectionObject.requestSignIn({}) }> Login </button>
-        </div>
+    <div>
+      <button onClick={() => walletSignIn()}>Login with NEAR</button>
+    </div>
   );
+  return <App isSignedIn={signedIn}/>;
 
-  useEffect(() => {
-    const initialiseWalletConnection = async () => {
-      setIsSignedIn(walletConnectionObject.isSignedIn());
-    };
-    if (walletConnectionObject) {
-      initialiseWalletConnection();
-    }
-  }, [walletConnectionObject]);
-
-  useEffect(() => {
-    const initializeCalimero = async () => {
-      setCalimero(calimeroSdk);
-      const wallet = await walletConnection();
-      setWalletConnectionObject(wallet);
-    };
-
-    if (!calimero || !walletConnectionObject) {
-      initializeCalimero();
-    }
-  }, [calimero, walletConnectionObject]);
-
-  return isSignedIn ? <PrivateComponent /> : <PublicComponent />;
 }
+
+export default App
 ```
 ## Additional notes
 
