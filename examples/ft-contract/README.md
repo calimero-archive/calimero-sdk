@@ -20,26 +20,26 @@ cd examples/ft-contract
 Install the project dependencies.
 
 ```
-pnpm install
+yarn install
 ```
 Usage
 
 To start the development server, run the following command:
 
 ```
-pnpm run dev
+yarn run dev
 ```
 This will start a development server at http://localhost:3000. Any changes you make to the code will be automatically hot-reloaded in the browser.
 
 To build the production-ready version of the application, run:
 
 ```
-pnpm run build
+yarn run build
 ```
 This will create a dist directory containing the compiled and optimized version of the application. To preview the production build, you can run:
 
 ```
-pnpm run preview
+yarn run preview
 ```
 This will start a server that serves the production build at http://localhost:5000.
 Logging In with NEAR Wallet
