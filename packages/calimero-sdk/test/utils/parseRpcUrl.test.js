@@ -27,13 +27,13 @@ describe('Parse Calimero RPC urls', () => {
     
     const result = parseRpcUrl(url);
 
-    expect(result.walletUrl).toBe('https://testnet-calimero-mnw.netlify.app/');
+    expect(result.walletUrl).toBe('https://testnet.mynearwallet.com/');
   });
   it('should return mainnet wallet url from a mainnet calimero rpc url', () => {
     const url = 'https://api.staging.calimero.network/api/v1/shards/demos-calimero/neard-rpc/';
     
     const result = parseRpcUrl(url);
 
-    expect(result.walletUrl).toBe('https://calimero-mnw.netlify.app/');
+    expect(result.walletUrl).toBe('https://www.mynearwallet.com/');
   });
 });

@@ -1,5 +1,5 @@
-const TESTNET_WALLET_URL = 'https://testnet-calimero-mnw.netlify.app/';
-const MAINNET_WALLET_URL = 'https://calimero-mnw.netlify.app/';
+const TESTNET_WALLET_URL = 'https://testnet.mynearwallet.com/';
+const MAINNET_WALLET_URL = 'https://www.mynearwallet.com/';
 
 export function parseRpcUrl(url: string): { shardId: string, walletUrl: string } {
   const regex = /^https:\/\/api\.(.*?)calimero\.network\/api\/v1\/shards\/(?<shardId>\S*)\/neard-rpc\/$/;
